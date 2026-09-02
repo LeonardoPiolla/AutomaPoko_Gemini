@@ -1,5 +1,8 @@
 package com.automapoko.app.presentation
 
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.automapoko.app.data.entity.AutomationEntity
 import com.automapoko.app.data.model.TriggerType
@@ -25,6 +29,7 @@ fun HomeScreen(
     onNavigateToLogs: () -> Unit
 ) {
     var automationToDelete by remember { mutableStateOf<AutomationEntity?>(null) }
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -43,27 +48,59 @@ fun HomeScreen(
             }
         }
     ) { padding ->
-        if (automations.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Nenhuma automação cadastrada.\nToque no '+' para criar uma!",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Card de Aviso Xiaomi / Permissões
+            item {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Warning, contentDescription = "Aviso", tint = MaterialTheme.colorScheme.error)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Atenção (Xiaomi/Poco)", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onErrorContainer)
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "Para garantir que os gatilhos funcionem, ative o 'Início Automático' e remova as restrições de bateria do app.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = {
+                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = Uri.parse("package:${context.packageName}")
+                                }
+                                context.startActivity(intent)
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) {
+                            Text("Abrir Configurações")
+                        }
+                    }
+                }
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+
+            if (automations.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Nenhuma automação cadastrada.", style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            } else {
                 items(automations, key = { it.id }) { automation ->
                     AutomationCard(
                         automation = automation,
@@ -76,7 +113,6 @@ fun HomeScreen(
         }
     }
 
-    // Diálogo de confirmação de exclusão
     if (automationToDelete != null) {
         val target = automationToDelete!!
         AlertDialog(
@@ -95,9 +131,7 @@ fun HomeScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { automationToDelete = null }) {
-                    Text("Cancelar")
-                }
+                TextButton(onClick = { automationToDelete = null }) { Text("Cancelar") }
             }
         )
     }
@@ -123,15 +157,8 @@ fun AutomationCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                     Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(text = automation.name, style = MaterialTheme.typography.titleMedium)
@@ -139,27 +166,12 @@ fun AutomationCard(
                 Switch(checked = automation.isEnabled, onCheckedChange = onToggle)
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Ação: Abrir ${automation.targetAppName}",
-                style = MaterialTheme.typography.bodyMedium
-            )
+            Text(text = "Ação: Abrir ${automation.targetAppName}", style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.height(4.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Cooldown: ${automation.cooldownMinutes} min",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline
-                )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(text = "Cooldown: ${automation.cooldownMinutes} min", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
                 IconButton(onClick = onDeleteClick) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "Excluir",
-                        tint = MaterialTheme.colorScheme.error
-                    )
+                    Icon(Icons.Default.Delete, contentDescription = "Excluir", tint = MaterialTheme.colorScheme.error)
                 }
             }
         }
