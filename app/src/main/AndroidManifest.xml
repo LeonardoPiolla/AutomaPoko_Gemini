@@ -19,11 +19,14 @@
         </intent>
     </queries>
 
-    <application
-        android:name=".AutomapokoApp"
-        android:allowBackup="true"
-        android:label="AutomaPoko"
-        android:supportsRtl="true">
+<application
+    android:name=".AutomapokoApp"
+    android:allowBackup="true"
+    android:label="AutomaPoko"
+    android:icon="@drawable/ic_launcher"
+    android:roundIcon="@drawable/ic_launcher"
+    android:supportsRtl="true"
+    android:theme="@android:style/Theme.Material.NoActionBar">
 
         <activity
             android:name=".presentation.MainActivity"
