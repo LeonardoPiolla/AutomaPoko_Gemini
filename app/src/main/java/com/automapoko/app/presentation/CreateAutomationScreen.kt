@@ -1,8 +1,13 @@
 package com.automapoko.app.presentation
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothManager
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,12 +19,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import com.automapoko.app.data.database.AutomapokoDatabase
 import com.automapoko.app.data.entity.AutomationEntity
 import com.automapoko.app.data.model.GeofenceTransitionType
 import com.automapoko.app.data.model.TriggerConfig
 import com.automapoko.app.data.model.TriggerType
 import com.automapoko.app.data.repository.AppRepository
 import com.automapoko.app.data.repository.InstalledApp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -27,6 +36,7 @@ import kotlinx.serialization.json.Json
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateAutomationScreen(
+    automationId: Long? = null,
     onNavigateBack: () -> Unit,
     onSave: (AutomationEntity) -> Unit
 ) {
@@ -41,24 +51,72 @@ fun CreateAutomationScreen(
     var installedApps by remember { mutableStateOf<List<InstalledApp>>(emptyList()) }
     var showAppSelectionDialog by remember { mutableStateOf(false) }
 
-    val pairedDevices = remember {
-        val bm = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
-        try {
-            bm?.adapter?.bondedDevices?.mapNotNull { it.name } ?: emptyList()
-        } catch (e: Exception) {
-            emptyList()
+    var pairedDevices by remember { mutableStateOf<List<String>>(emptyList()) }
+    var hasBluetoothPermission by remember { mutableStateOf(false) }
+
+    // Launcher para pedir permissão de Bluetooth Connect (Android 12+)
+    val bluetoothPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasBluetoothPermission = isGranted
+        if (isGranted) {
+            val bm = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+            pairedDevices = bm?.adapter?.bondedDevices?.mapNotNull { it.name } ?: emptyList()
         }
     }
 
+    // Carrega dados se for edição
+    LaunchedEffect(automationId) {
+        if (automationId != null && automationId > 0) {
+            val db = AutomapokoDatabase.getInstance(context)
+            val existing = db.automationDao().getAutomationById(automationId)
+            if (existing != null) {
+                name = existing.name
+                selectedTrigger = existing.triggerType
+                cooldownMinutes = existing.cooldownMinutes.toString()
+                selectedApp = InstalledApp(name = existing.targetAppName, packageName = existing.targetPackageName)
+
+                try {
+                    when (existing.triggerType) {
+                        TriggerType.BLUETOOTH -> {
+                            val config = Json.decodeFromString<TriggerConfig.Bluetooth>(existing.triggerConfigJson)
+                            bluetoothDeviceName = config.deviceName
+                        }
+                        TriggerType.WIFI -> {
+                            val config = Json.decodeFromString<TriggerConfig.Wifi>(existing.triggerConfigJson)
+                            wifiSsid = config.ssid
+                        }
+                        else -> {}
+                    }
+                } catch (_: Exception) {}
+            }
+        }
+    }
+
+    // Carrega apps instalados e verifica permissão Bluetooth ao abrir
     LaunchedEffect(Unit) {
         val repo = AppRepository(context)
         installedApps = repo.getInstalledApps()
+
+        val permissionToCheck = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Manifest.permission.BLUETOOTH_CONNECT
+        } else {
+            Manifest.permission.BLUETOOTH
+        }
+
+        if (ContextCompat.checkSelfPermission(context, permissionToCheck) == PackageManager.PERMISSION_GRANTED) {
+            hasBluetoothPermission = true
+            val bm = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+            pairedDevices = bm?.adapter?.bondedDevices?.mapNotNull { it.name } ?: emptyList()
+        } else {
+            bluetoothPermissionLauncher.launch(permissionToCheck)
+        }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Nova Automação") },
+                title = { Text(if (automationId == null || automationId == 0L) "Nova Automação" else "Editar Automação") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
@@ -97,18 +155,32 @@ fun CreateAutomationScreen(
 
             if (selectedTrigger == TriggerType.BLUETOOTH) {
                 Text("Dispositivo Pareado:", style = MaterialTheme.typography.bodyMedium)
-                LazyColumn(modifier = Modifier.heightIn(max = 120.dp)) {
-                    items(pairedDevices) { dev ->
-                        ListItem(
-                            headlineContent = { Text(dev) },
-                            trailingContent = {
-                                RadioButton(
-                                    selected = bluetoothDeviceName == dev,
-                                    onClick = { bluetoothDeviceName = dev }
-                                )
-                            },
-                            modifier = Modifier.clickable { bluetoothDeviceName = dev }
-                        )
+                if (!hasBluetoothPermission) {
+                    Text(
+                        "Permissão de Bluetooth necessária para listar dispositivos pareados.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                } else if (pairedDevices.isEmpty()) {
+                    Text(
+                        "Nenhum dispositivo Bluetooth pareado encontrado.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                } else {
+                    LazyColumn(modifier = Modifier.heightIn(max = 140.dp)) {
+                        items(pairedDevices) { dev ->
+                            ListItem(
+                                headlineContent = { Text(dev) },
+                                trailingContent = {
+                                    RadioButton(
+                                        selected = bluetoothDeviceName == dev,
+                                        onClick = { bluetoothDeviceName = dev }
+                                    )
+                                },
+                                modifier = Modifier.clickable { bluetoothDeviceName = dev }
+                            )
+                        }
                     }
                 }
             } else if (selectedTrigger == TriggerType.WIFI) {
@@ -150,6 +222,7 @@ fun CreateAutomationScreen(
                     }
 
                     val entity = AutomationEntity(
+                        id = automationId ?: 0L,
                         name = name.ifEmpty { "Automação sem nome" },
                         triggerType = selectedTrigger,
                         triggerConfigJson = configJson,
