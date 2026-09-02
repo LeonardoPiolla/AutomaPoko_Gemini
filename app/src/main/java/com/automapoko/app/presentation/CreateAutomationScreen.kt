@@ -4,8 +4,8 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothManager
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
-import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -14,6 +14,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -28,7 +30,7 @@ import com.automapoko.app.data.model.TriggerType
 import com.automapoko.app.data.repository.AppRepository
 import com.automapoko.app.data.repository.InstalledApp
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -50,11 +52,11 @@ fun CreateAutomationScreen(
     var selectedApp by remember { mutableStateOf<InstalledApp?>(null) }
     var installedApps by remember { mutableStateOf<List<InstalledApp>>(emptyList()) }
     var showAppSelectionDialog by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
 
     var pairedDevices by remember { mutableStateOf<List<String>>(emptyList()) }
     var hasBluetoothPermission by remember { mutableStateOf(false) }
 
-    // Launcher para pedir permissão de Bluetooth Connect (Android 12+)
     val bluetoothPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -65,7 +67,6 @@ fun CreateAutomationScreen(
         }
     }
 
-    // Carrega dados se for edição
     LaunchedEffect(automationId) {
         if (automationId != null && automationId > 0) {
             val db = AutomapokoDatabase.getInstance(context)
@@ -93,17 +94,11 @@ fun CreateAutomationScreen(
         }
     }
 
-    // Carrega apps instalados e verifica permissão Bluetooth ao abrir
     LaunchedEffect(Unit) {
         val repo = AppRepository(context)
         installedApps = repo.getInstalledApps()
-
-        val permissionToCheck = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            Manifest.permission.BLUETOOTH_CONNECT
-        } else {
-            Manifest.permission.BLUETOOTH
-        }
-
+        val permissionToCheck = Manifest.permission.BLUETOOTH_CONNECT
+        
         if (ContextCompat.checkSelfPermission(context, permissionToCheck) == PackageManager.PERMISSION_GRANTED) {
             hasBluetoothPermission = true
             val bm = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
@@ -141,43 +136,19 @@ fun CreateAutomationScreen(
 
             Text("Gatilho:", style = MaterialTheme.typography.titleSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(
-                    selected = selectedTrigger == TriggerType.BLUETOOTH,
-                    onClick = { selectedTrigger = TriggerType.BLUETOOTH },
-                    label = { Text("Bluetooth") }
-                )
-                FilterChip(
-                    selected = selectedTrigger == TriggerType.WIFI,
-                    onClick = { selectedTrigger = TriggerType.WIFI },
-                    label = { Text("Wi-Fi") }
-                )
+                FilterChip(selected = selectedTrigger == TriggerType.BLUETOOTH, onClick = { selectedTrigger = TriggerType.BLUETOOTH }, label = { Text("Bluetooth") })
+                FilterChip(selected = selectedTrigger == TriggerType.WIFI, onClick = { selectedTrigger = TriggerType.WIFI }, label = { Text("Wi-Fi") })
             }
 
             if (selectedTrigger == TriggerType.BLUETOOTH) {
-                Text("Dispositivo Pareado:", style = MaterialTheme.typography.bodyMedium)
                 if (!hasBluetoothPermission) {
-                    Text(
-                        "Permissão de Bluetooth necessária para listar dispositivos pareados.",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                } else if (pairedDevices.isEmpty()) {
-                    Text(
-                        "Nenhum dispositivo Bluetooth pareado encontrado.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline
-                    )
+                    Text("Permissão de Bluetooth necessária.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 } else {
                     LazyColumn(modifier = Modifier.heightIn(max = 140.dp)) {
                         items(pairedDevices) { dev ->
                             ListItem(
                                 headlineContent = { Text(dev) },
-                                trailingContent = {
-                                    RadioButton(
-                                        selected = bluetoothDeviceName == dev,
-                                        onClick = { bluetoothDeviceName = dev }
-                                    )
-                                },
+                                trailingContent = { RadioButton(selected = bluetoothDeviceName == dev, onClick = { bluetoothDeviceName = dev }) },
                                 modifier = Modifier.clickable { bluetoothDeviceName = dev }
                             )
                         }
@@ -194,11 +165,8 @@ fun CreateAutomationScreen(
 
             HorizontalDivider()
 
-            OutlinedButton(
-                onClick = { showAppSelectionDialog = true },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(selectedApp?.let { "App: ${it.name}" } ?: "Selecionar Aplicativo")
+            OutlinedButton(onClick = { showAppSelectionDialog = true }, modifier = Modifier.fillMaxWidth()) {
+                Text(selectedApp?.let { "App Selecionado: ${it.name}" } ?: "Selecionar Aplicativo para Abrir")
             }
 
             OutlinedTextField(
@@ -210,50 +178,78 @@ fun CreateAutomationScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            Button(
-                onClick = {
-                    val app = selectedApp ?: return@Button
-                    val configJson = when (selectedTrigger) {
-                        TriggerType.BLUETOOTH -> Json.encodeToString(TriggerConfig.Bluetooth(bluetoothDeviceName))
-                        TriggerType.WIFI -> Json.encodeToString(TriggerConfig.Wifi(wifiSsid))
-                        TriggerType.LOCATION -> Json.encodeToString(
-                            TriggerConfig.Location(-23.5505, -46.6333, 100f, GeofenceTransitionType.ENTER)
-                        )
-                    }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = {
+                        selectedApp?.let { app ->
+                            val intent = context.packageManager.getLaunchIntentForPackage(app.packageName)
+                            intent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            intent?.let { context.startActivity(it) }
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                    enabled = selectedApp != null,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                ) {
+                    Icon(Icons.Default.PlayArrow, contentDescription = "Testar Ação")
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Testar Ação")
+                }
 
-                    val entity = AutomationEntity(
-                        id = automationId ?: 0L,
-                        name = name.ifEmpty { "Automação sem nome" },
-                        triggerType = selectedTrigger,
-                        triggerConfigJson = configJson,
-                        targetPackageName = app.packageName,
-                        targetAppName = app.name,
-                        cooldownMinutes = cooldownMinutes.toIntOrNull() ?: 2
-                    )
-                    onSave(entity)
-                },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = name.isNotBlank() && selectedApp != null
-            ) {
-                Text("Salvar Automação")
+                Button(
+                    onClick = {
+                        val app = selectedApp ?: return@Button
+                        val configJson = when (selectedTrigger) {
+                            TriggerType.BLUETOOTH -> Json.encodeToString(TriggerConfig.Bluetooth(bluetoothDeviceName))
+                            TriggerType.WIFI -> Json.encodeToString(TriggerConfig.Wifi(wifiSsid))
+                            TriggerType.LOCATION -> Json.encodeToString(TriggerConfig.Location(-23.55, -46.63, 100f, GeofenceTransitionType.ENTER))
+                        }
+
+                        val entity = AutomationEntity(
+                            id = automationId ?: 0L,
+                            name = name.ifEmpty { "Automação sem nome" },
+                            triggerType = selectedTrigger,
+                            triggerConfigJson = configJson,
+                            targetPackageName = app.packageName,
+                            targetAppName = app.name,
+                            cooldownMinutes = cooldownMinutes.toIntOrNull() ?: 2
+                        )
+                        onSave(entity)
+                    },
+                    modifier = Modifier.weight(1f),
+                    enabled = name.isNotBlank() && selectedApp != null
+                ) {
+                    Text("Salvar")
+                }
             }
         }
     }
 
     if (showAppSelectionDialog) {
+        val filteredApps = installedApps.filter { it.name.contains(searchQuery, ignoreCase = true) }
+
         AlertDialog(
             onDismissRequest = { showAppSelectionDialog = false },
             title = { Text("Selecione um App") },
             text = {
-                LazyColumn(modifier = Modifier.height(300.dp)) {
-                    items(installedApps) { app ->
-                        ListItem(
-                            headlineContent = { Text(app.name) },
-                            modifier = Modifier.clickable {
-                                selectedApp = app
-                                showAppSelectionDialog = false
-                            }
-                        )
+                Column {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("Buscar app...") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                    )
+                    LazyColumn(modifier = Modifier.height(300.dp)) {
+                        items(filteredApps) { app ->
+                            ListItem(
+                                headlineContent = { Text(app.name) },
+                                modifier = Modifier.clickable {
+                                    selectedApp = app
+                                    showAppSelectionDialog = false
+                                }
+                            )
+                        }
                     }
                 }
             },
