@@ -7,14 +7,24 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface AutomationDao {
+
     @Query("SELECT * FROM automations ORDER BY createdAt DESC")
     fun getAllAutomations(): Flow<List<AutomationEntity>>
+
+    @Query("SELECT * FROM automations WHERE isEnabled = 1")
+    suspend fun getActiveAutomations(): List<AutomationEntity>
 
     @Query("SELECT * FROM automations WHERE isEnabled = 1 AND triggerType = :triggerType")
     suspend fun getActiveAutomationsByTrigger(triggerType: TriggerType): List<AutomationEntity>
 
+    @Query("SELECT * FROM automations WHERE id = :id LIMIT 1")
+    suspend fun getAutomationById(id: Long): AutomationEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAutomation(automation: AutomationEntity): Long
+
+    @Update
+    suspend fun updateAutomation(automation: AutomationEntity)
 
     @Delete
     suspend fun deleteAutomation(automation: AutomationEntity)
