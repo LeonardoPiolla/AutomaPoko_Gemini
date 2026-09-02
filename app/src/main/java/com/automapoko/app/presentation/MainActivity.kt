@@ -8,9 +8,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.automapoko.app.data.database.AutomapokoDatabase
 import com.automapoko.app.presentation.theme.AutomapokoTheme
 import kotlinx.coroutines.Dispatchers
@@ -35,14 +37,40 @@ class MainActivity : ComponentActivity() {
                     composable("home") {
                         HomeScreen(
                             automations = automations,
-                            onToggleStatus = { id, enabled -> lifecycleScope.launch(Dispatchers.IO) { db.automationDao().updateStatus(id, enabled) } },
-                            onDelete = { entity -> lifecycleScope.launch(Dispatchers.IO) { db.automationDao().deleteAutomation(entity) } },
+                            onToggleStatus = { id, enabled ->
+                                lifecycleScope.launch(Dispatchers.IO) {
+                                    db.automationDao().updateStatus(id, enabled)
+                                }
+                            },
+                            onDelete = { entity ->
+                                lifecycleScope.launch(Dispatchers.IO) {
+                                    db.automationDao().deleteAutomation(entity)
+                                }
+                            },
                             onNavigateToCreate = { nav.navigate("create") },
+                            onNavigateToEdit = { id -> nav.navigate("edit/$id") },
                             onNavigateToLogs = { nav.navigate("logs") }
                         )
                     }
                     composable("create") {
                         CreateAutomationScreen(
+                            automationId = null,
+                            onNavigateBack = { nav.popBackStack() },
+                            onSave = { entity ->
+                                lifecycleScope.launch(Dispatchers.IO) {
+                                    db.automationDao().insertAutomation(entity)
+                                    launch(Dispatchers.Main) { nav.popBackStack() }
+                                }
+                            }
+                        )
+                    }
+                    composable(
+                        route = "edit/{automationId}",
+                        arguments = listOf(navArgument("automationId") { type = NavType.LongType })
+                    ) { backStackEntry ->
+                        val automationId = backStackEntry.arguments?.getLong("automationId")
+                        CreateAutomationScreen(
+                            automationId = automationId,
                             onNavigateBack = { nav.popBackStack() },
                             onSave = { entity ->
                                 lifecycleScope.launch(Dispatchers.IO) {
@@ -53,7 +81,15 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     composable("logs") {
-                        LogsScreen(logs, onClearLogs = { lifecycleScope.launch(Dispatchers.IO) { db.executionLogDao().clearAllLogs() } }, onNavigateBack = { nav.popBackStack() })
+                        LogsScreen(
+                            logs = logs,
+                            onClearLogs = {
+                                lifecycleScope.launch(Dispatchers.IO) {
+                                    db.executionLogDao().clearAllLogs()
+                                }
+                            },
+                            onNavigateBack = { nav.popBackStack() }
+                        )
                     }
                 }
             }
