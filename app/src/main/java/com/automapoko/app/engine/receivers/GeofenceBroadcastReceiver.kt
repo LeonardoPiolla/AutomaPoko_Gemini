@@ -36,7 +36,9 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
                     if (config.transitionType == transType) {
                         ActionExecutor.execute(context, a, "Localização: ${transType.name}")
                     }
-                } catch (_: Exception {}
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
         }
     }
