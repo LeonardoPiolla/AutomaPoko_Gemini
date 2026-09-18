@@ -145,7 +145,6 @@ fun HomeScreen(
         }
     }
 
-    // Diálogo de confirmação de exclusão
     if (automationToDelete != null) {
         val target = automationToDelete!!
         AlertDialog(
@@ -164,9 +163,7 @@ fun HomeScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { automationToDelete = null }) {
-                    Text("Cancelar")
-                }
+                TextButton(onClick = { automationToDelete = null }) { Text("Cancelar") }
             }
         )
     }
@@ -192,15 +189,8 @@ fun AutomationCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                     Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(text = automation.name, style = MaterialTheme.typography.titleMedium)
@@ -208,27 +198,12 @@ fun AutomationCard(
                 Switch(checked = automation.isEnabled, onCheckedChange = onToggle)
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Ação: Abrir ${automation.targetAppName}",
-                style = MaterialTheme.typography.bodyMedium
-            )
+            Text(text = "Ação: Abrir ${automation.targetAppName}", style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.height(4.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Cooldown: ${automation.cooldownMinutes} min",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline
-                )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(text = "Cooldown: ${automation.cooldownMinutes} min", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
                 IconButton(onClick = onDeleteClick) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "Excluir",
-                        tint = MaterialTheme.colorScheme.error
-                    )
+                    Icon(Icons.Default.Delete, contentDescription = "Excluir", tint = MaterialTheme.colorScheme.error)
                 }
             }
         }
