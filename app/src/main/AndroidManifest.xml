@@ -1,63 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.automapoko.app">
 
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-    <uses-permission android:name="android.permission.BLUETOOTH" />
-    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <!-- Permissão exigida pelo Android 12, 13, 14+ para listar e conectar a dispositivos pareados -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    
+    <!-- (Se você já tiver outras permissões como INTERNET, SYSTEM_ALERT_WINDOW, deixe-as aqui também) -->
 
-    <queries>
-        <intent>
-            <action android:name="android.intent.action.MAIN" />
-            <category android:name="android.intent.category.LAUNCHER" />
-        </intent>
-    </queries>
-
-<application
-    android:name=".AutomapokoApp"
-    android:allowBackup="true"
-    android:label="AutomaPoko"
-    android:icon="@drawable/ic_launcher"
-    android:roundIcon="@drawable/ic_launcher"
-    android:supportsRtl="true"
-    android:theme="@android:style/Theme.Material.NoActionBar">
-
-        <activity
-            android:name=".presentation.MainActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-
-        <receiver
-            android:name=".engine.receivers.BootReceiver"
-            android:enabled="true"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-        </receiver>
-
-        <receiver
-            android:name=".engine.receivers.BluetoothTriggerReceiver"
-            android:enabled="true"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.bluetooth.device.action.ACL_CONNECTED" />
-            </intent-filter>
-        </receiver>
-
-        <receiver
-            android:name=".engine.receivers.GeofenceBroadcastReceiver"
-            android:enabled="true"
-            android:exported="false" />
+    <application
+        android:name=".AutomapokoApp"
+        android:allowBackup="true"
+        android:icon="@drawable/ic_launcher"
+        android:label="AutomaPoko"
+        android:roundIcon="@drawable/ic_launcher"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.Material.NoActionBar">
+        
+        <!-- ... resto das activities ... -->
+        
     </application>
 </manifest>
