@@ -5,10 +5,18 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.automapoko.app.data.entity.AutomationEntity
+import com.automapoko.app.data.entity.ExecutionLogEntity
+// Se o seu ExecutionLogDao estiver na pasta 'dao', descomente a linha abaixo:
+// import com.automapoko.app.data.dao.ExecutionLogDao 
 
-@Database(entities = [AutomationEntity::class], version = 2, exportSchema = false)
+@Database(
+    entities = [AutomationEntity::class, ExecutionLogEntity::class], // Tabela de logs adicionada
+    version = 2, 
+    exportSchema = false
+)
 abstract class AutomapokoDatabase : RoomDatabase() {
     abstract fun automationDao(): AutomationDao
+    abstract fun executionLogDao(): ExecutionLogDao // Conexão com os logs restaurada
 
     companion object {
         @Volatile
@@ -21,7 +29,7 @@ abstract class AutomapokoDatabase : RoomDatabase() {
                     AutomapokoDatabase::class.java,
                     "automapoko.db"
                 )
-                .fallbackToDestructiveMigration() // Recria o banco para as novas regras
+                .fallbackToDestructiveMigration()
                 .build().also { INSTANCE = it }
             }
         }
