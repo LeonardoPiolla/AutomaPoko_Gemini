@@ -20,6 +20,10 @@ import androidx.compose.ui.unit.dp
 import com.automapoko.app.data.entity.AutomationEntity
 import com.automapoko.app.data.model.TriggerType
 
+import android.media.AudioManager
+import kotlinx.serialization.json.Json
+import com.automapoko.app.data.model.ActionConfig
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -182,6 +186,10 @@ fun AutomationCard(
         TriggerType.LOCATION -> Icons.Default.LocationOn
     }
 
+    val actions = try { 
+        Json.decodeFromString<List<ActionConfig>>(automation.actionsJson) 
+    } catch(e: Exception) { emptyList() }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -197,11 +205,32 @@ fun AutomationCard(
                 }
                 Switch(checked = automation.isEnabled, onCheckedChange = onToggle)
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = "Ação: Abrir ${automation.targetAppName}", style = MaterialTheme.typography.bodyMedium)
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(text = "Cooldown: ${automation.cooldownMinutes} min", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Text("Ações:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+            if (actions.isEmpty()) {
+                Text(text = "Nenhuma ação definida", style = MaterialTheme.typography.bodyMedium)
+            } else {
+                actions.forEach { action ->
+                    val actionText = when (action) {
+                        is ActionConfig.OpenApp -> "📱 Abrir ${action.appName}"
+                        is ActionConfig.SetVolume -> {
+                            val streamName = when(action.streamType) {
+                                AudioManager.STREAM_MUSIC -> "Mídia"
+                                AudioManager.STREAM_RING -> "Toque"
+                                AudioManager.STREAM_NOTIFICATION -> "Notificações"
+                                AudioManager.STREAM_ALARM -> "Alarme"
+                                AudioManager.STREAM_VOICE_CALL -> "Chamada"
+                                else -> "Sistema"
+                            }
+                            "🔊 Volume ($streamName): ${action.volumePercentage}%"
+                        }
+                    }
+                    Text(text = actionText, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 IconButton(onClick = onDeleteClick) {
                     Icon(Icons.Default.Delete, contentDescription = "Excluir", tint = MaterialTheme.colorScheme.error)
                 }
