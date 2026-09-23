@@ -16,7 +16,7 @@
         
         <!-- Declaração da tela principal e do ícone no launcher -->
         <activity
-            android:name=".MainActivity"
+            android:name=".presentation.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
