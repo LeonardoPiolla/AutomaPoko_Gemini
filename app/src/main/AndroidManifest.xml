@@ -4,8 +4,6 @@
 
     <!-- Permissão exigida pelo Android 12, 13, 14+ para listar e conectar a dispositivos pareados -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-    
-    <!-- (Se você já tiver outras permissões como INTERNET, SYSTEM_ALERT_WINDOW, deixe-as aqui também) -->
 
     <application
         android:name=".AutomapokoApp"
@@ -16,7 +14,15 @@
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.NoActionBar">
         
-        <!-- ... resto das activities ... -->
+        <!-- Declaração da tela principal e do ícone no launcher -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
         
     </application>
 </manifest>
