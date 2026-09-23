@@ -1,4 +1,4 @@
-package com.automapoko.app.data.dao
+package com.automapoko.app.data.database // Pacote corrigido para bater com a pasta e o Banco de Dados
 
 import androidx.room.*
 import com.automapoko.app.data.entity.AutomationEntity
@@ -8,7 +8,8 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface AutomationDao {
 
-    @Query("SELECT * FROM automations ORDER BY createdAt DESC")
+    // Alterado para ordenar pelo ID, já que removemos o createdAt
+    @Query("SELECT * FROM automations ORDER BY id DESC")
     fun getAllAutomations(): Flow<List<AutomationEntity>>
 
     @Query("SELECT * FROM automations WHERE isEnabled = 1")
