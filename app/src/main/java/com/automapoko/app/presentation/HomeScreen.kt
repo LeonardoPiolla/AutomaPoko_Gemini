@@ -1,5 +1,8 @@
 package com.automapoko.app.presentation
 
+import android.media.AudioManager
+import kotlinx.serialization.json.Json
+import com.automapoko.app.data.model.ActionConfig
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -19,10 +22,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.automapoko.app.data.entity.AutomationEntity
 import com.automapoko.app.data.model.TriggerType
-
-import android.media.AudioManager
-import kotlinx.serialization.json.Json
-import com.automapoko.app.data.model.ActionConfig
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
