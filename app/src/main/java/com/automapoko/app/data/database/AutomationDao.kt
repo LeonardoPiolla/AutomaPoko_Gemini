@@ -31,7 +31,4 @@ interface AutomationDao {
 
     @Query("UPDATE automations SET isEnabled = :isEnabled WHERE id = :id")
     suspend fun updateStatus(id: Long, isEnabled: Boolean)
-
-    @Query("UPDATE automations SET lastTriggeredAt = :timestamp WHERE id = :id")
-    suspend fun updateLastTriggered(id: Long, timestamp: Long)
 }
