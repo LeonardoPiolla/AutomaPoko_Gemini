@@ -1,9 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.automapoko.app">
 
-    <!-- Permissão exigida pelo Android 12, 13, 14+ para listar e conectar a dispositivos pareados -->
+    <!-- Permissão para encontrar dispositivos Bluetooth -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    
+    <!-- Permissão para aparecer na lista de Sobreposição (abrir apps em segundo plano) -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    
+    <!-- Permissão para enxergar todos os apps instalados (Spotify, Waze, etc) -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
 
     <application
         android:name=".AutomapokoApp"
@@ -14,7 +22,6 @@
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.NoActionBar">
         
-        <!-- Declaração da tela principal e do ícone no launcher -->
         <activity
             android:name=".presentation.MainActivity"
             android:exported="true">
