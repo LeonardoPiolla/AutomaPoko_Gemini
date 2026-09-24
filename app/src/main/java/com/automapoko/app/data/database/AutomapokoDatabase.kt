@@ -6,17 +6,16 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.automapoko.app.data.entity.AutomationEntity
 import com.automapoko.app.data.entity.ExecutionLogEntity
-// Se o seu ExecutionLogDao estiver na pasta 'dao', descomente a linha abaixo:
-// import com.automapoko.app.data.dao.ExecutionLogDao 
+import com.automapoko.app.data.dao.ExecutionLogDao // <-- IMPORT ATIVADO AQUI
 
 @Database(
-    entities = [AutomationEntity::class, ExecutionLogEntity::class], // Tabela de logs adicionada
+    entities = [AutomationEntity::class, ExecutionLogEntity::class],
     version = 2, 
     exportSchema = false
 )
 abstract class AutomapokoDatabase : RoomDatabase() {
     abstract fun automationDao(): AutomationDao
-    abstract fun executionLogDao(): ExecutionLogDao // Conexão com os logs restaurada
+    abstract fun executionLogDao(): ExecutionLogDao
 
     companion object {
         @Volatile
